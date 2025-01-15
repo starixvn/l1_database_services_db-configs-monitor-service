@@ -10,8 +10,6 @@ const init = async () => {
     const targetMongo = new MongoClient(targetUri);
     const { changeStreamConfigsNamespace } = namespaces;
 
-    console.log("watcherMongo", await watcherMongo.db("ops_configs").collection("change_stream_configs").find({}).toArray());
-
     const container = new Container().register();
     await container.registerDatabases(watcherMongo, targetMongo, changeStreamConfigsNamespace);
     const app: App = container.resolve("app");

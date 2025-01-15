@@ -2,9 +2,9 @@ import { asClass, asValue, BaseContainer } from "@ldb/base-container";
 import type { ChangeStreamNameSpace, CollectionAggregationPipeline, MongoClient } from "@ldb/mongo";
 import { healthcheckPort, lumiLoggerConfig } from "./app-configs.js";
 import { App } from "./app.js";
-import { GameInitiator } from "./initiators/game-initiator.js";
 import { metadata } from "./metadata.js";
 import type { ChangeStreamConfig } from "./types/watcher-configs.js";
+import { GameWatcher } from "./watchers/game-watcher.js";
 import { Watcher } from "./watchers/watcher.js";
 
 export class Container extends BaseContainer {
@@ -21,7 +21,7 @@ export class Container extends BaseContainer {
         this.container.register({
             app: asClass(App).singleton(),
             watcher: asClass(Watcher).singleton(),
-            gameInitiator: asClass(GameInitiator).singleton(),
+            gameWatcher: asClass(GameWatcher).singleton(),
         });
         return this;
     }
@@ -47,8 +47,6 @@ export class Container extends BaseContainer {
                 },
             },
         ];
-
-        console.log("watcherPipeline", JSON.stringify(watcherPipeline));
 
         const watcherConfigs = new Map(changeStreamConfigs.map(({ ns: { db, coll }, event }) => [`${db}.${coll}`, event]));
 

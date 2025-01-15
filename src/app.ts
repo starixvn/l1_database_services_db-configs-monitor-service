@@ -1,13 +1,13 @@
 import { BaseApp } from "@ldb/base-app";
 import type { BaseLogger } from "@ldb/logger";
 import type { Metadata } from "@ldb/utils";
-import type { GameInitiator } from "./initiators/game-initiator.js";
+import type { GameWatcher } from "./watchers/game-watcher.js";
 import type { Watcher } from "./watchers/watcher.js";
 
 export class App extends BaseApp {
     constructor(
         private readonly watcher: Watcher,
-        private readonly gameInitiator: GameInitiator,
+        private readonly gameWatcher: GameWatcher,
 
         metadata: Metadata,
         logger: BaseLogger,
@@ -16,14 +16,14 @@ export class App extends BaseApp {
     }
 
     initiate() {
-        this.gameInitiator.subscribe(this.watcher);
+        this.gameWatcher.subscribe(this.watcher);
 
         this.watcher.initiate();
         super.initiate();
     }
 
     terminate() {
-        this.gameInitiator.unsubscribe(this.watcher);
+        this.gameWatcher.unsubscribe(this.watcher);
 
         super.terminate();
     }

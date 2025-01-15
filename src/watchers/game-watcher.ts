@@ -3,14 +3,14 @@ import type { ChangeStreamDeleteDocument, ChangeStreamInsertDocument, ChangeStre
 import { Dispatcher } from "@ldb/utils";
 import type { GameConfig } from "../types/game-configs.js";
 import type { WatcherEvents, WatcherOperationType } from "../types/watcher-configs.js";
-import type { Watcher } from "../watchers/watcher.js";
+import type { Watcher } from "./watcher.js";
 
-type GameInitiatorEvents = {
+type GameWatcherEvents = {
     INITIATE: (db: string, game: GameConfig) => void;
     GAME: (db: string, game: GameConfig) => void;
 };
 
-export class GameInitiator extends Dispatcher<GameInitiatorEvents, Pick<WatcherEvents, `GAME_${WatcherOperationType | "initiate"}`>> {
+export class GameWatcher extends Dispatcher<GameWatcherEvents, Pick<WatcherEvents, `GAME_${WatcherOperationType | "initiate"}`>> {
     constructor(logger: BaseLogger) {
         super(logger);
         this.selfBound();
