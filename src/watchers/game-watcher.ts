@@ -1,16 +1,20 @@
 import type { BaseLogger, Extras } from "@ldb/logger";
 import type { ChangeStreamDeleteDocument, ChangeStreamInsertDocument, ChangeStreamNameSpace, ChangeStreamReplaceDocument, ChangeStreamUpdateDocument } from "@ldb/mongo";
-import { Dispatcher } from "@ldb/utils";
+import { Dispatcher, type GenericListener, type Satisfies } from "@ldb/utils";
+import type { GameEventType } from "../types/event-types.js";
 import type { GameConfig } from "../types/game-configs.js";
 import type { WatcherEvents, WatcherOperationType } from "../types/watcher-configs.js";
 import type { Watcher } from "./watcher.js";
 
-type GameWatcherEvents = {
-    INITIATE: (db: string, game: GameConfig) => void;
-    GAME: (db: string, game: GameConfig) => void;
-};
+export type GameWatcherEvents = Satisfies<
+    {
+        INITIATE: (db: string, game: GameConfig) => void;
+        GAME: (db: string, game: GameConfig) => void;
+    },
+    Record<GameEventType, GenericListener>
+>;
 
-export class GameWatcher extends Dispatcher<GameWatcherEvents, Pick<WatcherEvents, `GAME_${WatcherOperationType | "initiate"}`>> {
+export class GameWatcher extends Dispatcher<GameWatcherEvents, Pick<WatcherEvents, `${GameEventType}_${WatcherOperationType | "initiate"}`>> {
     constructor(logger: BaseLogger) {
         super(logger);
         this.selfBound();
@@ -73,7 +77,7 @@ export class GameWatcher extends Dispatcher<GameWatcherEvents, Pick<WatcherEvent
         updated.type = updated.type || type;
 
         if (report) {
-            this.logger.logWarning({ title: "GameInitiator", message: "Dangerous update detected" }, { extra: { ns, updated } });
+            this.logger.logWarning({ title: this.className, message: "Dangerous update detected" }, { extra: { ns, updated } });
         }
     }
 
@@ -103,7 +107,7 @@ export class GameWatcher extends Dispatcher<GameWatcherEvents, Pick<WatcherEvent
         replaced.type = replaced.type || type;
 
         if (report) {
-            this.logger.logWarning({ title: "GameInitiator", message: "Dangerous replace detected" }, { extra: { ns, replaced } });
+            this.logger.logWarning({ title: this.className, message: "Dangerous replace detected" }, { extra: { ns, replaced } });
         }
     }
 
@@ -111,7 +115,7 @@ export class GameWatcher extends Dispatcher<GameWatcherEvents, Pick<WatcherEvent
         const { fullDocumentBeforeChange } = doc;
         const { name, gameId, type } = fullDocumentBeforeChange ?? { name: undefined, gameId: undefined, type: undefined };
 
-        this.logger.logWarning({ title: "GameInitiator", message: "Dangerous delete detected" }, { extra: { ns, deleted: { name, gameId, type } } });
+        this.logger.logWarning({ title: this.className, message: "Dangerous delete detected" }, { extra: { ns, deleted: { name, gameId, type } } });
     }
 
     subscribe(publisher: Watcher) {

@@ -4,6 +4,7 @@ import { healthcheckPort, lumiLoggerConfig } from "./app-configs.js";
 import { App } from "./app.js";
 import { metadata } from "./metadata.js";
 import type { ChangeStreamConfig } from "./types/watcher-configs.js";
+import { ConfigWatcher } from "./watchers/config-watcher.js";
 import { GameWatcher } from "./watchers/game-watcher.js";
 import { Watcher } from "./watchers/watcher.js";
 
@@ -22,6 +23,7 @@ export class Container extends BaseContainer {
             app: asClass(App).singleton(),
             watcher: asClass(Watcher).singleton(),
             gameWatcher: asClass(GameWatcher).singleton(),
+            configWatcher: asClass(ConfigWatcher).singleton(),
         });
         return this;
     }

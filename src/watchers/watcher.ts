@@ -9,8 +9,9 @@ import {
     type MongoClient,
 } from "@ldb/mongo";
 import { ClusterWatcher } from "@ldb/watcher";
+import type { WatcherEventType } from "../types/event-types.js";
 import type { GameConfig } from "../types/game-configs.js";
-import type { WatcherEvents, WatcherEventType } from "../types/watcher-configs.js";
+import type { WatcherEvents } from "../types/watcher-configs.js";
 
 export class Watcher extends ClusterWatcher<WatcherEvents> {
     constructor(
