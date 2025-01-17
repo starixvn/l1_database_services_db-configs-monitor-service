@@ -1,9 +1,9 @@
 import type { BaseLogger, Extras } from "@ldb/logger";
-import type { ChangeStreamDeleteDocument, ChangeStreamInsertDocument, ChangeStreamNameSpace, ChangeStreamReplaceDocument, ChangeStreamUpdateDocument } from "@ldb/mongo";
+import type { ChangeStreamDeleteDocument, ChangeStreamNameSpace, ChangeStreamReplaceDocument } from "@ldb/mongo";
 import { Dispatcher, type GenericListener, type Satisfies } from "@ldb/utils";
 import type { GameEventType } from "../types/event-types.js";
 import type { GameConfig } from "../types/game-configs.js";
-import type { WatcherEvents, WatcherOperationType } from "../types/watcher-configs.js";
+import type { OperationType, WatcherEvents, WatcherOperationType } from "../types/watcher-configs.js";
 import type { Watcher } from "./watcher.js";
 
 export type GameWatcherEvents = Satisfies<
@@ -28,7 +28,7 @@ export class GameWatcher extends Dispatcher<GameWatcherEvents, Pick<WatcherEvent
         this.initGameDeleted = this.initGameDeleted.bind(this);
     }
 
-    private initGameInitiate(ns: ChangeStreamNameSpace, doc: ChangeStreamInsertDocument<GameConfig>) {
+    private initGameInitiate(ns: ChangeStreamNameSpace, doc: OperationType<GameEventType>["initiate"]) {
         const { db } = ns;
         const { fullDocument } = doc;
         const { name, gameId, type } = fullDocument;
@@ -36,7 +36,7 @@ export class GameWatcher extends Dispatcher<GameWatcherEvents, Pick<WatcherEvent
         this.emit("INITIATE", db, { name, gameId, type });
     }
 
-    private initGameInserted(ns: ChangeStreamNameSpace, doc: ChangeStreamInsertDocument<GameConfig>) {
+    private initGameInserted(ns: ChangeStreamNameSpace, doc: OperationType<GameEventType>["insert"]) {
         const { db } = ns;
         const { fullDocument } = doc;
         const { name, gameId, type } = fullDocument;
@@ -44,7 +44,7 @@ export class GameWatcher extends Dispatcher<GameWatcherEvents, Pick<WatcherEvent
         this.emit("GAME", db, { name, gameId, type });
     }
 
-    private initGameUpdated(ns: ChangeStreamNameSpace, doc: ChangeStreamUpdateDocument<GameConfig>) {
+    private initGameUpdated(ns: ChangeStreamNameSpace, doc: OperationType<GameEventType>["update"]) {
         const { updateDescription, fullDocumentBeforeChange } = doc;
         const { updatedFields, removedFields } = updateDescription;
 

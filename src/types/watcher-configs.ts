@@ -17,13 +17,13 @@ export type ChangeStreamConfig = {
 
 export type WatcherOperationType = "insert" | "update" | "replace" | "delete";
 
-type OperationType<E extends WatcherEventType> = Satisfies<
+export type OperationType<E extends WatcherEventType> = Satisfies<
     {
-        insert: ChangeStreamInsertDocument<EventSchema[E]>;
-        update: ChangeStreamUpdateDocument<EventSchema[E]>;
-        replace: ChangeStreamReplaceDocument<EventSchema[E]>;
-        delete: ChangeStreamDeleteDocument<EventSchema[E]>;
-        initiate: ChangeStreamInsertDocument<GameConfig>;
+        insert: E extends WatcherEventType ? ChangeStreamInsertDocument<EventSchema[E]> : never;
+        update: E extends WatcherEventType ? ChangeStreamUpdateDocument<EventSchema[E]> : never;
+        replace: E extends WatcherEventType ? ChangeStreamReplaceDocument<EventSchema[E]> : never;
+        delete: E extends WatcherEventType ? ChangeStreamDeleteDocument<EventSchema[E]> : never;
+        initiate: E extends WatcherEventType ? Pick<ChangeStreamInsertDocument<GameConfig>, "ns" | "fullDocument"> : never;
     },
     Record<WatcherOperationType, ChangeStreamDocument<EventSchema[E]>>
 >;
@@ -31,8 +31,7 @@ type OperationType<E extends WatcherEventType> = Satisfies<
 export type WatcherEventOperationType = `${WatcherEventType}_${WatcherOperationType}` | `${GameEventType}_initiate`;
 
 export type WatcherEvents = {
-    [K in WatcherEventOperationType]: (
-        ns: ChangeStreamNameSpace,
-        doc: K extends `${infer E}_${infer O}` ? OperationType<E & WatcherEventType>[O & (WatcherOperationType | "initiate")] : never,
-    ) => void;
+    [K in WatcherEventOperationType]: K extends `${infer E}_${infer O}`
+        ? (ns: ChangeStreamNameSpace, doc: OperationType<E & WatcherEventType>[O & (WatcherOperationType | "initiate")]) => void
+        : never;
 };

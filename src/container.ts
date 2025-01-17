@@ -1,5 +1,5 @@
 import { asClass, asValue, BaseContainer } from "@ldb/base-container";
-import type { ChangeStreamNameSpace, CollectionAggregationPipeline, MongoClient } from "@ldb/mongo";
+import type { ChangeStreamNameSpace, MongoClient } from "@ldb/mongo";
 import { healthcheckPort, lumiLoggerConfig } from "./app-configs.js";
 import { App } from "./app.js";
 import { metadata } from "./metadata.js";
@@ -28,34 +28,17 @@ export class Container extends BaseContainer {
         return this;
     }
 
-    async registerDatabases(watcherMongo: MongoClient, targetMongo: MongoClient, changeStreamConfigsNamespace: ChangeStreamNameSpace) {
+    async registerDatabases(watcherMongo: MongoClient, targetMongo: MongoClient, watcherNamespaces: Record<string, ChangeStreamNameSpace>) {
         this.container.register({
             watcherMongo: asValue(watcherMongo),
             targetMongo: asValue(targetMongo),
         });
 
-        const { db, coll } = changeStreamConfigsNamespace;
-        const changeStreamConfigs = await watcherMongo
-            .db(db)
-            .collection<ChangeStreamConfig>(coll)
-            .find({}, { projection: { _id: 0, ns: 1, event: 1 } })
-            .toArray();
-
-        const watcherPipeline: CollectionAggregationPipeline = [
-            {
-                $match: {
-                    operationType: { $in: ["insert", "update", "delete", "replace"] },
-                    ns: { $in: changeStreamConfigs.map(({ ns }) => ns) },
-                },
-            },
-        ];
-
-        const watcherConfigs = new Map(changeStreamConfigs.map(({ ns: { db, coll }, event }) => [`${db}.${coll}`, event]));
-
-        this.container.register({
-            watcherPipeline: asValue(watcherPipeline),
-            watcherConfigs: asValue(watcherConfigs),
-        });
+        for (const [key, { db, coll }] of Object.entries(watcherNamespaces)) {
+            this.container.register({
+                [key]: asValue(watcherMongo.db(db).collection<ChangeStreamConfig>(coll)),
+            });
+        }
 
         return this;
     }

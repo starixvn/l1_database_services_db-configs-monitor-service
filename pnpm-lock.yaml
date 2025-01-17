@@ -27,8 +27,8 @@ importers:
         specifier: 0.3.6-rc.1
         version: 0.3.6-rc.1
       '@ldb/watcher':
-        specifier: 0.1.2-rc.3
-        version: 0.1.2-rc.3
+        specifier: 0.1.2-rc.6
+        version: 0.1.2-rc.6
       awilix:
         specifier: 12.0.4
         version: 12.0.4
@@ -461,8 +461,8 @@ packages:
       '@vitest/coverage-v8': 2.1.8
       vitest: 2.1.8
 
-  '@ldb/watcher@0.1.2-rc.3':
-    resolution: {integrity: sha512-4B1HKaQPC6DmYRxoP7V6tAWQ6PA+kA2LQ5cqSS16tk1GvvM6eMtQnX7qOIsh9dOnWGtOM61eZU8pXlohk1bAPQ==}
+  '@ldb/watcher@0.1.2-rc.6':
+    resolution: {integrity: sha512-zznB0d5BAVLcF+Z+FeoDLja3oIwy2Cprwnk6D8z7vXvE5j58E0msda1hnlHgP4jyfdLXhG3yRq3ikx9MXZb2ug==}
 
   '@mongodb-js/saslprep@1.1.9':
     resolution: {integrity: sha512-tVkljjeEaAhCqTzajSdgbQ6gE6f3oneVwa3iXR6csiEwXXOFsiC6Uh9iAjAhXPtqa/XMDHWjjeNH/77m/Yq2dw==}
@@ -2323,10 +2323,10 @@ snapshots:
       '@vitest/coverage-v8': 2.1.8(vitest@2.1.8(@types/node@22.10.6))
       vitest: 2.1.8(@types/node@22.10.6)
 
-  '@ldb/watcher@0.1.2-rc.3':
+  '@ldb/watcher@0.1.2-rc.6':
     dependencies:
       '@ldb/mongo': 6.10.4
-      '@ldb/utils': 0.3.6-rc.0
+      '@ldb/utils': 0.3.6-rc.1
     transitivePeerDependencies:
       - '@aws-sdk/credential-providers'
       - gcp-metadata

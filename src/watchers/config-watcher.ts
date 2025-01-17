@@ -1,15 +1,8 @@
 import type { BaseLogger } from "@ldb/logger";
-import type {
-    ChangeStreamDeleteDocument,
-    ChangeStreamInsertDocument,
-    ChangeStreamNameSpace,
-    ChangeStreamReplaceDocument,
-    ChangeStreamUpdateDocument,
-    GenericListener,
-} from "@ldb/mongo";
+import type { ChangeStreamNameSpace, GenericListener } from "@ldb/mongo";
 import { Dispatcher, type Satisfies } from "@ldb/utils";
 import type { EventSchema, TemplateEventType } from "../types/event-types.js";
-import type { WatcherEvents, WatcherOperationType } from "../types/watcher-configs.js";
+import type { OperationType, WatcherEvents, WatcherOperationType } from "../types/watcher-configs.js";
 import type { Watcher } from "./watcher.js";
 
 export type IndexWatcherEvents = Satisfies<
@@ -73,7 +66,7 @@ export class ConfigWatcher extends Dispatcher<IndexWatcherEvents, Pick<WatcherEv
         return false;
     }
 
-    private initInserted<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: ChangeStreamInsertDocument<EventSchema[T]>) {
+    private initInserted<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["insert"]) {
         const { fullDocument } = doc;
         const { category, type, dbs, data, targets, __v } = fullDocument;
 
@@ -86,7 +79,7 @@ export class ConfigWatcher extends Dispatcher<IndexWatcherEvents, Pick<WatcherEv
         }
     }
 
-    private initUpdated<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: ChangeStreamUpdateDocument<EventSchema[T]>) {
+    private initUpdated<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["update"]) {
         const { fullDocument } = doc;
 
         if (!fullDocument) {
@@ -108,7 +101,7 @@ export class ConfigWatcher extends Dispatcher<IndexWatcherEvents, Pick<WatcherEv
         }
     }
 
-    private initReplaced<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: ChangeStreamReplaceDocument<EventSchema[T]>) {
+    private initReplaced<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["replace"]) {
         const { fullDocument } = doc;
 
         if (!fullDocument) {
@@ -130,7 +123,7 @@ export class ConfigWatcher extends Dispatcher<IndexWatcherEvents, Pick<WatcherEv
         }
     }
 
-    private initDeleted<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: ChangeStreamDeleteDocument<EventSchema[T]>) {
+    private initDeleted<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["delete"]) {
         const { fullDocumentBeforeChange } = doc;
         const { category, type, dbs } = fullDocumentBeforeChange ?? { category: undefined, type: undefined, dbs: undefined };
 
