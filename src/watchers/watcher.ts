@@ -1,5 +1,5 @@
 import type { BaseLogger } from "@ldb/logger";
-import { type Collection, type CollectionAggregationPipeline, type MongoClient } from "@ldb/mongo";
+import { type ChangeStreamNameSpace, type Collection, type CollectionAggregationPipeline, type MongoClient } from "@ldb/mongo";
 import { ClusterWatcher } from "@ldb/watcher";
 import type { TemplateEventType, WatcherEventType } from "../types/event-types.js";
 import type { GameConfig } from "../types/game-configs.js";
@@ -9,6 +9,8 @@ const DEFAULT_WATCHER_PIPELINE = [{ $match: { ns: {} } }] as const satisfies Col
 
 export class Watcher extends ClusterWatcher<WatcherEvents> {
     private watcherConfigs: Map<string, WatcherEventType> = new Map();
+    private watcherNamespaces: Map<string, ChangeStreamNameSpace> = new Map();
+    private gameConfigNamespaces: Map<string, ChangeStreamNameSpace> = new Map();
 
     constructor(
         private readonly watcherMongo: MongoClient,
@@ -19,14 +21,28 @@ export class Watcher extends ClusterWatcher<WatcherEvents> {
     }
 
     private async reloadChangeStream() {
-        const configsNameSpace = { db: this.changeStreamConfigsCollection.dbName, coll: this.changeStreamConfigsCollection.collectionName };
-        const changeStreamConfigs = await this.changeStreamConfigsCollection.find({}, { projection: { _id: 0, ns: 1, event: 1 } }).toArray();
+        const { dbName, collectionName } = this.changeStreamConfigsCollection;
+        const configsNameSpace: ChangeStreamNameSpace = { db: dbName, coll: collectionName };
+        const changeStreamConfigs = this.changeStreamConfigsCollection.find({}, { projection: { _id: 0, ns: 1, event: 1 } });
 
         this.watcherConfigs.clear();
-        this.watcherConfigs = new Map(changeStreamConfigs.map(({ ns: { db, coll }, event }) => [`${db}.${coll}`, event]));
+        this.watcherNamespaces.clear();
+        this.gameConfigNamespaces.clear();
 
-        const namespaces = changeStreamConfigs.map(({ ns }) => ns);
-        namespaces.push(configsNameSpace);
+        const namespaces = [configsNameSpace];
+        for await (const { ns, event } of changeStreamConfigs) {
+            namespaces.push(ns);
+
+            const { db, coll } = ns;
+            if (event === "GAME") {
+                this.gameConfigNamespaces.set(`${db}.${coll}`, ns);
+            } else {
+                this.watcherNamespaces.set(`${db}.${coll}`, ns);
+            }
+
+            this.watcherConfigs.set(`${db}.${coll}`, event);
+        }
+
         const pipeline = [
             {
                 $match: {
@@ -41,6 +57,14 @@ export class Watcher extends ClusterWatcher<WatcherEvents> {
         this.logger.logWarning({ title: this.className, message: "Change stream reloaded with new configs" }, { extra: { namespaces } });
     }
 
+    private getCascadedNamespaces(event: WatcherEventType) {
+        if (event === "GAME") {
+            return Array.from(this.watcherNamespaces.values());
+        } else {
+            return Array.from(this.gameConfigNamespaces.values());
+        }
+    }
+
     protected async handleDocumentDelete(changeDocument: OperationType<TemplateEventType>["delete"]) {
         const { ns } = changeDocument;
         const { db, coll } = ns;
@@ -50,7 +74,7 @@ export class Watcher extends ClusterWatcher<WatcherEvents> {
         const event = this.watcherConfigs.get(`${db}.${coll}`);
         if (!event) return;
 
-        this.emit(`${event}_delete`, ns, changeDocument);
+        this.emit(`${event}_delete`, ns, changeDocument, this.getCascadedNamespaces(event));
     }
 
     protected async handleDocumentInsert(changeDocument: OperationType<TemplateEventType>["insert"]) {
@@ -62,7 +86,7 @@ export class Watcher extends ClusterWatcher<WatcherEvents> {
         const event = this.watcherConfigs.get(`${db}.${coll}`);
         if (!event) return;
 
-        this.emit(`${event}_insert`, ns, changeDocument);
+        this.emit(`${event}_insert`, ns, changeDocument, this.getCascadedNamespaces(event));
     }
 
     protected async handleDocumentUpdate(changeDocument: OperationType<TemplateEventType>["update"]) {
@@ -74,7 +98,7 @@ export class Watcher extends ClusterWatcher<WatcherEvents> {
         const event = this.watcherConfigs.get(`${db}.${coll}`);
         if (!event) return;
 
-        this.emit(`${event}_update`, ns, changeDocument);
+        this.emit(`${event}_update`, ns, changeDocument, this.getCascadedNamespaces(event));
     }
 
     protected async handleDocumentReplace(changeDocument: OperationType<TemplateEventType>["replace"]) {
@@ -86,16 +110,13 @@ export class Watcher extends ClusterWatcher<WatcherEvents> {
         const event = this.watcherConfigs.get(`${db}.${coll}`);
         if (!event) return;
 
-        this.emit(`${event}_replace`, ns, changeDocument);
+        this.emit(`${event}_replace`, ns, changeDocument, this.getCascadedNamespaces(event));
     }
 
     async initiate() {
         await this.reloadChangeStream();
 
-        for (const [ns, event] of this.watcherConfigs.entries()) {
-            if (event !== "GAME") continue;
-
-            const [db, coll] = ns.split(".");
+        for (const { db, coll } of this.gameConfigNamespaces.values()) {
             const games = this.watcherMongo
                 .db(db)
                 .collection<GameConfig>(coll)
@@ -106,7 +127,7 @@ export class Watcher extends ClusterWatcher<WatcherEvents> {
                     ns: { db, coll },
                     fullDocument: { name, gameId, type },
                 };
-                this.emit("GAME_initiate", { db, coll }, insertDocument);
+                this.emit("GAME_initiate", { db, coll }, insertDocument, this.getCascadedNamespaces("GAME"));
             }
         }
     }

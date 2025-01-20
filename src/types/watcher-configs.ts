@@ -6,8 +6,8 @@ import type {
     ChangeStreamReplaceDocument,
     ChangeStreamUpdateDocument,
 } from "@ldb/mongo";
-import type { Satisfies } from "@ldb/utils";
-import type { EventSchema, GameEventType, WatcherEventType } from "./event-types.js";
+import type { GenericListener, Satisfies } from "@ldb/utils";
+import type { EventSchema, GameEventType, TemplateEventType, WatcherEventType } from "./event-types.js";
 import type { GameConfig } from "./game-configs.js";
 
 export type ChangeStreamConfig = {
@@ -32,6 +32,23 @@ export type WatcherEventOperationType = `${WatcherEventType}_${WatcherOperationT
 
 export type WatcherEvents = {
     [K in WatcherEventOperationType]: K extends `${infer E}_${infer O}`
-        ? (ns: ChangeStreamNameSpace, doc: OperationType<E & WatcherEventType>[O & (WatcherOperationType | "initiate")]) => void
+        ? (ns: ChangeStreamNameSpace, doc: OperationType<E & WatcherEventType>[O & (WatcherOperationType | "initiate")], cascadedNs: ChangeStreamNameSpace[]) => void
         : never;
 };
+
+export type GameWatcherEvents = Satisfies<
+    {
+        INITIATE: (db: string, game: GameConfig, cascadedNs: ChangeStreamNameSpace[]) => void;
+        GAME: (db: string, game: GameConfig, cascadedNs: ChangeStreamNameSpace[]) => void;
+    },
+    Record<GameEventType, GenericListener>
+>;
+
+export type ConfigWatcherEvents = Satisfies<
+    {
+        INDEX: (db: string, index: Omit<EventSchema["INDEX"], "dbs">, cascadedNs: ChangeStreamNameSpace[]) => void;
+        SUMMARY: (db: string, summary: Omit<EventSchema["SUMMARY"], "dbs">, cascadedNs: ChangeStreamNameSpace[]) => void;
+        ARCHIVE: (db: string, archive: Omit<EventSchema["ARCHIVE"], "dbs">, cascadedNs: ChangeStreamNameSpace[]) => void;
+    },
+    Record<TemplateEventType, GenericListener>
+>;

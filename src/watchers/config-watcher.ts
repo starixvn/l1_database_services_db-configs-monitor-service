@@ -1,20 +1,11 @@
 import type { BaseLogger } from "@ldb/logger";
 import type { ChangeStreamNameSpace, GenericListener } from "@ldb/mongo";
-import { Dispatcher, type Satisfies } from "@ldb/utils";
+import { Dispatcher } from "@ldb/utils";
 import type { ConfigTemplate, ConfigTemplate$3 } from "../types/config-templates.js";
-import type { EventSchema, TemplateEventType } from "../types/event-types.js";
-import type { OperationType, WatcherEvents, WatcherOperationType } from "../types/watcher-configs.js";
+import type { TemplateEventType } from "../types/event-types.js";
+import type { ConfigWatcherEvents, OperationType, WatcherEvents, WatcherOperationType } from "../types/watcher-configs.js";
 import { validateConfigTemplate$3 } from "../utils/type-guards.js";
 import type { Watcher } from "./watcher.js";
-
-export type IndexWatcherEvents = Satisfies<
-    {
-        INDEX: (db: string, index: Omit<EventSchema["INDEX"], "dbs">) => void;
-        SUMMARY: (db: string, index: Omit<EventSchema["SUMMARY"], "dbs">) => void;
-        ARCHIVE: (db: string, index: Omit<EventSchema["ARCHIVE"], "dbs">) => void;
-    },
-    Record<TemplateEventType, GenericListener>
->;
 
 const INITIAL_EVENT_HANDLERS: Record<`init_${TemplateEventType}_${WatcherOperationType}`, GenericListener> = {
     init_INDEX_insert: Boolean,
@@ -31,7 +22,7 @@ const INITIAL_EVENT_HANDLERS: Record<`init_${TemplateEventType}_${WatcherOperati
     init_ARCHIVE_delete: Boolean,
 };
 
-export class ConfigWatcher extends Dispatcher<IndexWatcherEvents, Pick<WatcherEvents, `${TemplateEventType}_${WatcherOperationType}`>> {
+export class ConfigWatcher extends Dispatcher<ConfigWatcherEvents, Pick<WatcherEvents, `${TemplateEventType}_${WatcherOperationType}`>> {
     private eventHandlers: Record<`init_${TemplateEventType}_${WatcherOperationType}`, GenericListener> = INITIAL_EVENT_HANDLERS;
 
     constructor(logger: BaseLogger) {
@@ -77,7 +68,7 @@ export class ConfigWatcher extends Dispatcher<IndexWatcherEvents, Pick<WatcherEv
         return false;
     }
 
-    private initInserted<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["insert"]) {
+    private initInserted<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["insert"], cascadedNs: ChangeStreamNameSpace[]) {
         const { fullDocument } = doc;
 
         if (!this.validateTemplateVersion(event, ns, fullDocument)) {
@@ -86,11 +77,11 @@ export class ConfigWatcher extends Dispatcher<IndexWatcherEvents, Pick<WatcherEv
         const { category, type, dbs, data, targets, __v } = fullDocument;
 
         for (const db of dbs) {
-            this.emit<TemplateEventType>(event, db, { category, type, data, targets, __v });
+            this.emit<TemplateEventType>(event, db, { category, type, data, targets, __v }, cascadedNs);
         }
     }
 
-    private initUpdated<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["update"]) {
+    private initUpdated<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["update"], cascadedNs: ChangeStreamNameSpace[]) {
         const { fullDocument } = doc;
 
         if (!this.validateTemplateVersion(event, ns, fullDocument)) {
@@ -99,11 +90,11 @@ export class ConfigWatcher extends Dispatcher<IndexWatcherEvents, Pick<WatcherEv
 
         const { category, type, dbs, data, targets, __v } = fullDocument;
         for (const db of dbs) {
-            this.emit<TemplateEventType>(event, db, { category, type, data, targets, __v });
+            this.emit<TemplateEventType>(event, db, { category, type, data, targets, __v }, cascadedNs);
         }
     }
 
-    private initReplaced<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["replace"]) {
+    private initReplaced<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["replace"], cascadedNs: ChangeStreamNameSpace[]) {
         const { fullDocument } = doc;
 
         if (!this.validateTemplateVersion(event, ns, fullDocument)) {
@@ -112,7 +103,7 @@ export class ConfigWatcher extends Dispatcher<IndexWatcherEvents, Pick<WatcherEv
 
         const { category, type, dbs, data, targets, __v } = fullDocument;
         for (const db of dbs) {
-            this.emit<TemplateEventType>(event, db, { category, type, data, targets, __v });
+            this.emit<TemplateEventType>(event, db, { category, type, data, targets, __v }, cascadedNs);
         }
     }
 

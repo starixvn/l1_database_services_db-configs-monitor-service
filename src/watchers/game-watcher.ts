@@ -1,18 +1,10 @@
 import type { BaseLogger, Extras } from "@ldb/logger";
 import type { ChangeStreamDeleteDocument, ChangeStreamNameSpace, ChangeStreamReplaceDocument } from "@ldb/mongo";
-import { Dispatcher, type GenericListener, type Satisfies } from "@ldb/utils";
+import { Dispatcher } from "@ldb/utils";
 import type { GameEventType } from "../types/event-types.js";
 import type { GameConfig } from "../types/game-configs.js";
-import type { OperationType, WatcherEvents, WatcherOperationType } from "../types/watcher-configs.js";
+import type { GameWatcherEvents, OperationType, WatcherEvents, WatcherOperationType } from "../types/watcher-configs.js";
 import type { Watcher } from "./watcher.js";
-
-export type GameWatcherEvents = Satisfies<
-    {
-        INITIATE: (db: string, game: GameConfig) => void;
-        GAME: (db: string, game: GameConfig) => void;
-    },
-    Record<GameEventType, GenericListener>
->;
 
 export class GameWatcher extends Dispatcher<GameWatcherEvents, Pick<WatcherEvents, `${GameEventType}_${WatcherOperationType | "initiate"}`>> {
     constructor(logger: BaseLogger) {
@@ -28,20 +20,20 @@ export class GameWatcher extends Dispatcher<GameWatcherEvents, Pick<WatcherEvent
         this.initGameDeleted = this.initGameDeleted.bind(this);
     }
 
-    private initGameInitiate(ns: ChangeStreamNameSpace, doc: OperationType<GameEventType>["initiate"]) {
+    private initGameInitiate(ns: ChangeStreamNameSpace, doc: OperationType<GameEventType>["initiate"], cascadedNs: ChangeStreamNameSpace[]) {
         const { db } = ns;
         const { fullDocument } = doc;
         const { name, gameId, type } = fullDocument;
 
-        this.emit("INITIATE", db, { name, gameId, type });
+        this.emit("INITIATE", db, { name, gameId, type }, cascadedNs);
     }
 
-    private initGameInserted(ns: ChangeStreamNameSpace, doc: OperationType<GameEventType>["insert"]) {
+    private initGameInserted(ns: ChangeStreamNameSpace, doc: OperationType<GameEventType>["insert"], cascadedNs: ChangeStreamNameSpace[]) {
         const { db } = ns;
         const { fullDocument } = doc;
         const { name, gameId, type } = fullDocument;
 
-        this.emit("GAME", db, { name, gameId, type });
+        this.emit("GAME", db, { name, gameId, type }, cascadedNs);
     }
 
     private initGameUpdated(ns: ChangeStreamNameSpace, doc: OperationType<GameEventType>["update"]) {

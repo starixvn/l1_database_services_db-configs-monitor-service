@@ -19,13 +19,23 @@ export class App extends BaseApp {
 
     initiate() {
         this.gameWatcher.subscribe(this.watcher);
-        this.gameWatcher.on("INITIATE", (ns, doc) => this.logger.logDebug({ title: this.className, message: `Initiated ${ns} ${JSON.stringify(doc)}` }));
-        this.gameWatcher.on("GAME", (ns, doc) => this.logger.logDebug({ title: this.className, message: `Game event ${ns} ${JSON.stringify(doc)}` }));
+        this.gameWatcher.on("INITIATE", (ns, doc, cascadedNs) =>
+            this.logger.logDebug({ title: this.className, message: `Initiated ${ns} ${JSON.stringify(doc)}` }, { extra: { cascadedNs } }),
+        );
+        this.gameWatcher.on("GAME", (ns, doc, cascadedNs) =>
+            this.logger.logDebug({ title: this.className, message: `Game event ${ns} ${JSON.stringify(doc)}` }, { extra: { cascadedNs } }),
+        );
 
         this.configWatcher.subscribe(this.watcher);
-        this.configWatcher.on("INDEX", (ns, doc) => this.logger.logDebug({ title: this.className, message: `Index event ${ns} ${JSON.stringify(doc)}` }));
-        this.configWatcher.on("SUMMARY", (ns, doc) => this.logger.logDebug({ title: this.className, message: `Summary event ${ns} ${JSON.stringify(doc)}` }));
-        this.configWatcher.on("ARCHIVE", (ns, doc) => this.logger.logDebug({ title: this.className, message: `Archive event ${ns} ${JSON.stringify(doc)}` }));
+        this.configWatcher.on("INDEX", (ns, doc, cascadedNs) =>
+            this.logger.logDebug({ title: this.className, message: `Index event ${ns} ${JSON.stringify(doc)}` }, { extra: { cascadedNs } }),
+        );
+        this.configWatcher.on("SUMMARY", (ns, doc, cascadedNs) =>
+            this.logger.logDebug({ title: this.className, message: `Summary event ${ns} ${JSON.stringify(doc)}` }, { extra: { cascadedNs } }),
+        );
+        this.configWatcher.on("ARCHIVE", (ns, doc, cascadedNs) =>
+            this.logger.logDebug({ title: this.className, message: `Archive event ${ns} ${JSON.stringify(doc)}` }, { extra: { cascadedNs } }),
+        );
 
         this.watcher.initiate();
         super.initiate();
