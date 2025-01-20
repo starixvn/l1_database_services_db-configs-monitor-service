@@ -1,15 +1,17 @@
 import type { BaseLogger } from "@ldb/logger";
 import type { ChangeStreamNameSpace, GenericListener } from "@ldb/mongo";
 import { Dispatcher, type Satisfies } from "@ldb/utils";
+import type { ConfigTemplate, ConfigTemplate$3 } from "../types/config-templates.js";
 import type { EventSchema, TemplateEventType } from "../types/event-types.js";
 import type { OperationType, WatcherEvents, WatcherOperationType } from "../types/watcher-configs.js";
+import { validateConfigTemplate$3 } from "../utils/type-guards.js";
 import type { Watcher } from "./watcher.js";
 
 export type IndexWatcherEvents = Satisfies<
     {
-        INDEX: (db: string, index: Omit<EventSchema["INDEX"], "dbs" | "__v">) => void;
-        SUMMARY: (db: string, index: Omit<EventSchema["SUMMARY"], "dbs" | "__v">) => void;
-        ARCHIVE: (db: string, index: Omit<EventSchema["ARCHIVE"], "dbs" | "__v">) => void;
+        INDEX: (db: string, index: Omit<EventSchema["INDEX"], "dbs">) => void;
+        SUMMARY: (db: string, index: Omit<EventSchema["SUMMARY"], "dbs">) => void;
+        ARCHIVE: (db: string, index: Omit<EventSchema["ARCHIVE"], "dbs">) => void;
     },
     Record<TemplateEventType, GenericListener>
 >;
@@ -54,79 +56,74 @@ export class ConfigWatcher extends Dispatcher<IndexWatcherEvents, Pick<WatcherEv
         this.eventHandlers.init_ARCHIVE_delete = this.initDeleted.bind(this, "ARCHIVE");
     }
 
-    private validateTemplateVersion<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, __v: number, category: string, type: number): boolean {
-        if (__v === 3) {
+    private validateTemplateVersion<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, document?: ConfigTemplate): document is ConfigTemplate$3 {
+        if (!document) {
+            this.logger.logError(
+                { title: `${this.className}.${event}`, message: `Input document is empty` }, //
+                { extra: { event, ns, document } },
+            );
+            return false;
+        }
+
+        const { category, type, __v } = document;
+        if (validateConfigTemplate$3(document)) {
             return true;
         }
 
         this.logger.logError(
             { title: `${this.className}.${event}`, message: `Invalid template version: expected v3, got v${__v}` }, //
-            { extra: { event, namespace: ns, version: __v, category, type } },
+            { extra: { event, ns, category, type, __v } },
         );
         return false;
     }
 
     private initInserted<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["insert"]) {
         const { fullDocument } = doc;
-        const { category, type, dbs, data, targets, __v } = fullDocument;
 
-        if (!this.validateTemplateVersion(event, ns, __v, category, type)) {
+        if (!this.validateTemplateVersion(event, ns, fullDocument)) {
             return;
         }
+        const { category, type, dbs, data, targets, __v } = fullDocument;
 
         for (const db of dbs) {
-            this.emit<TemplateEventType>(event, db, { category, type, data, targets });
+            this.emit<TemplateEventType>(event, db, { category, type, data, targets, __v });
         }
     }
 
     private initUpdated<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["update"]) {
         const { fullDocument } = doc;
 
-        if (!fullDocument) {
-            this.logger.logWarning(
-                { title: this.className, message: "Got empty data when watching data update" }, //
-                { extra: { namespace: ns, changeDocument: doc } },
-            );
+        if (!this.validateTemplateVersion(event, ns, fullDocument)) {
             return;
         }
 
         const { category, type, dbs, data, targets, __v } = fullDocument;
-
-        if (!this.validateTemplateVersion(event, ns, __v, category, type)) {
-            return;
-        }
-
         for (const db of dbs) {
-            this.emit<TemplateEventType>(event, db, { category, type, data, targets });
+            this.emit<TemplateEventType>(event, db, { category, type, data, targets, __v });
         }
     }
 
     private initReplaced<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["replace"]) {
         const { fullDocument } = doc;
 
-        if (!fullDocument) {
-            this.logger.logWarning(
-                { title: this.className, message: "Got empty data when watching data replace" }, //
-                { extra: { namespace: ns, changeDocument: doc } },
-            );
+        if (!this.validateTemplateVersion(event, ns, fullDocument)) {
             return;
         }
 
         const { category, type, dbs, data, targets, __v } = fullDocument;
-
-        if (!this.validateTemplateVersion(event, ns, __v, category, type)) {
-            return;
-        }
-
         for (const db of dbs) {
-            this.emit<TemplateEventType>(event, db, { category, type, data, targets });
+            this.emit<TemplateEventType>(event, db, { category, type, data, targets, __v });
         }
     }
 
     private initDeleted<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["delete"]) {
         const { fullDocumentBeforeChange } = doc;
-        const { category, type, dbs } = fullDocumentBeforeChange ?? { category: undefined, type: undefined, dbs: undefined };
 
+        if (!this.validateTemplateVersion(event, ns, fullDocumentBeforeChange)) {
+            return;
+        }
+
+        const { category, type, dbs } = fullDocumentBeforeChange ?? { category: undefined, type: undefined, dbs: undefined };
         this.logger.logWarning({ title: this.className, message: "Dangerous delete detected" }, { extra: { ns, deleted: { category, type, dbs } } });
     }
 
