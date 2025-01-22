@@ -7,6 +7,22 @@ import type { ChangeStreamConfig, OperationType, WatcherEvents } from "../types/
 
 const DEFAULT_WATCHER_PIPELINE = [{ $match: { ns: {} } }] as const satisfies CollectionAggregationPipeline;
 
+/**
+ * The Watcher class monitors all changes in the cluster using cluster change streams.
+ * Because the number of events is enormous, we apply filters to the change stream to only
+ * return events from our configured collections, which is saved in the change stream configs
+ * collection.
+ *
+ * There are 3 groups of collections:
+ * - **Game config collections**: Store game configuration of our system. Each game has a game `type`
+ *   to identify which template to apply. We want to trigger actions whenever new game is added.
+ * - **Index template collection**: Store index definitions for each game `type`. Changes in each
+ *   template will trigger actions to create or update the indexes of all games in the same
+ *   `type`.
+ * - **Config template collections**: Each collection will store config template for corresponding job.
+ *   Changes in each template will trigger actions to create or modify config of all games in the
+ *   same `type`. Currently we have 2 jobs: archive and summaries.
+ */
 export class Watcher extends ClusterWatcher<WatcherEvents> {
     private watcherConfigs: Map<string, WatcherEventType> = new Map();
     private watcherNamespaces: Map<string, ChangeStreamNameSpace> = new Map();
@@ -116,7 +132,10 @@ export class Watcher extends ClusterWatcher<WatcherEvents> {
     async initiate() {
         await this.reloadChangeStream();
 
+        const extra: Record<string, unknown[]> = {};
+
         for (const { db, coll } of this.gameConfigNamespaces.values()) {
+            extra[`${db}`] = [];
             const games = this.watcherMongo
                 .db(db)
                 .collection<GameConfig>(coll)
@@ -128,7 +147,9 @@ export class Watcher extends ClusterWatcher<WatcherEvents> {
                     fullDocument: { name, gameId, type },
                 };
                 this.emit("GAME_initiate", { db, coll }, insertDocument, this.getCascadedNamespaces("GAME"));
+                extra[`${db}`].push({ name, gameId, type });
             }
         }
+        this.logger.logInfo({ title: this.className, message: "Games initiated" }, { extra });
     }
 }
