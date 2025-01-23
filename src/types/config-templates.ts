@@ -3,6 +3,7 @@ import type { ChangeStreamNameSpace, Document } from "@ldb/mongo";
 export type IndexTemplateData = {
     postfix: string;
     idxs: Record<string, string>;
+    others: unknown;
 };
 
 export type ConfigTemplate$2<T extends Document = Document> = {

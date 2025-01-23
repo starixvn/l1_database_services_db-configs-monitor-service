@@ -68,9 +68,11 @@ export class Watcher extends ClusterWatcher<WatcherEvents> {
         this.logger.logWarning({ title: this.className, message: "Change stream reloaded with new configs" }, { extra: { namespaces } });
     }
 
+    private getCascadedNamespaces(event: GameEventType): CascadedNamespaces<GameEventType>;
+    private getCascadedNamespaces(event: TemplateEventType): CascadedNamespaces<TemplateEventType>;
     private getCascadedNamespaces<T extends WatcherEventType>(event: T): CascadedNamespaces<T> {
         if (event === "GAME") {
-            const cascadedNamespaces: CascadedNamespaces<GameEventType> = {
+            const cascadedNamespaces: CascadedNamespaces<"GAME"> = {
                 INDEX: [],
                 ARCHIVE: [],
                 SUMMARY: [],
@@ -84,10 +86,11 @@ export class Watcher extends ClusterWatcher<WatcherEvents> {
                 cascadedNamespaces[`${value}`].push(namespace);
             }
 
-            return cascadedNamespaces;
-        } else {
-            return { GAME: Array.from(this.gameConfigNamespaces.values()) };
+            return cascadedNamespaces as CascadedNamespaces<T>;
+        } else if (event === "INDEX" || event === "ARCHIVE" || event === "SUMMARY") {
+            return { GAME: Array.from(this.gameConfigNamespaces.values()) } as CascadedNamespaces<T>;
         }
+        throw new Error(`Invalid event type: ${event}`);
     }
 
     protected async handleDocumentDelete(changeDocument: OperationType<WatcherEventType>["delete"]) {

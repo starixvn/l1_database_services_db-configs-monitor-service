@@ -1,10 +1,8 @@
 import { BaseApp } from "@ldb/base-app";
 import type { BaseLogger } from "@ldb/logger";
 import type { Metadata } from "@ldb/utils";
-import type { GameInitiator } from "./initiators/game-initiator.js";
-import type { ConfigWatcher } from "./watchers/config-watcher.js";
-import type { GameWatcher } from "./watchers/game-watcher.js";
-import type { Watcher } from "./watchers/watcher.js";
+import type { ArchiveInitiator, GameInitiator, IndexInitiator, SummaryInitiator } from "./initiators/index.js";
+import type { ConfigWatcher, GameWatcher, Watcher } from "./watchers/index.js";
 
 export class App extends BaseApp {
     constructor(
@@ -13,6 +11,9 @@ export class App extends BaseApp {
         private readonly configWatcher: ConfigWatcher,
 
         private readonly gameInitiator: GameInitiator,
+        private readonly indexInitiator: IndexInitiator,
+        private readonly archiveInitiator: ArchiveInitiator,
+        private readonly summaryInitiator: SummaryInitiator,
 
         metadata: Metadata,
         logger: BaseLogger,
@@ -42,8 +43,29 @@ export class App extends BaseApp {
 
         this.gameInitiator.subscribe(this.gameWatcher);
         this.gameInitiator.on("DEPLOY_INDEX", (ns, idxs, quiet) => {
-            this.logger.logDebug({ title: this.className, message: `Deploy index` }, { extra: { ns, idxs, quiet } });
+            this.logger.logDebug({ title: this.className, message: `Deploy index from ${this.gameInitiator.className}` }, { extra: { ns, idxs, quiet } });
         });
+        this.gameInitiator.on("DEPLOY_ARCHIVE", (ns, archive, quiet) => {
+            this.logger.logDebug({ title: this.className, message: `Deploy archive from ${this.gameInitiator.className}` }, { extra: { ns, archive, quiet } });
+        });
+        this.gameInitiator.on("DEPLOY_SUMMARY", (ns, summary, quiet) => {
+            this.logger.logDebug({ title: this.className, message: `Deploy summary from ${this.gameInitiator.className}` }, { extra: { ns, summary, quiet } });
+        });
+
+        this.indexInitiator.subscribe(this.configWatcher);
+        this.indexInitiator.on("DEPLOY_INDEX", (ns, doc, cascadedNs) =>
+            this.logger.logDebug({ title: this.className, message: `Deploy index from ${this.indexInitiator.className}` }, { extra: { ns, doc, cascadedNs } }),
+        );
+
+        this.archiveInitiator.subscribe(this.configWatcher);
+        this.archiveInitiator.on("DEPLOY_ARCHIVE", (ns, doc, cascadedNs) =>
+            this.logger.logDebug({ title: this.className, message: `Deploy archive from ${this.archiveInitiator.className}` }, { extra: { ns, doc, cascadedNs } }),
+        );
+
+        this.summaryInitiator.subscribe(this.configWatcher);
+        this.summaryInitiator.on("DEPLOY_SUMMARY", (ns, doc, cascadedNs) =>
+            this.logger.logDebug({ title: this.className, message: `Deploy summary from ${this.summaryInitiator.className}` }, { extra: { ns, doc, cascadedNs } }),
+        );
 
         this.watcher.initiate();
         super.initiate();
@@ -51,6 +73,12 @@ export class App extends BaseApp {
 
     terminate() {
         this.gameWatcher.unsubscribe(this.watcher);
+        this.configWatcher.unsubscribe(this.watcher);
+
+        this.gameInitiator.unsubscribe(this.gameWatcher);
+        this.indexInitiator.unsubscribe(this.configWatcher);
+        this.archiveInitiator.unsubscribe(this.configWatcher);
+        this.summaryInitiator.unsubscribe(this.configWatcher);
 
         super.terminate();
     }

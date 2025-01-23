@@ -2,12 +2,10 @@ import { asClass, asValue, BaseContainer } from "@ldb/base-container";
 import type { ChangeStreamNameSpace, MongoClient } from "@ldb/mongo";
 import { healthcheckPort, lumiLoggerConfig } from "./app-configs.js";
 import { App } from "./app.js";
-import { GameInitiator } from "./initiators/game-initiator.js";
+import { ArchiveInitiator, GameInitiator, IndexInitiator, SummaryInitiator } from "./initiators/index.js";
 import { metadata } from "./metadata.js";
-import type { ChangeStreamConfig } from "./types/watchers.js";
-import { ConfigWatcher } from "./watchers/config-watcher.js";
-import { GameWatcher } from "./watchers/game-watcher.js";
-import { Watcher } from "./watchers/watcher.js";
+import type { ChangeStreamConfig } from "./types/index.js";
+import { ConfigWatcher, GameWatcher, Watcher } from "./watchers/index.js";
 
 export class Container extends BaseContainer {
     constructor() {
@@ -28,6 +26,9 @@ export class Container extends BaseContainer {
             configWatcher: asClass(ConfigWatcher).singleton(),
 
             gameInitiator: asClass(GameInitiator).singleton(),
+            indexInitiator: asClass(IndexInitiator).singleton(),
+            archiveInitiator: asClass(ArchiveInitiator).singleton(),
+            summaryInitiator: asClass(SummaryInitiator).singleton(),
         });
         return this;
     }

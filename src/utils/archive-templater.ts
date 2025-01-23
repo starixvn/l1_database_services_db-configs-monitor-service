@@ -6,7 +6,7 @@ export const archiveTemplater = (category: string, db: string, gameConfig: GameC
     const { id, from, to, childs, ...restParentConfig } = archiveTemplate;
     const mappedChilds: ArchiveConfig["childs"] = [];
 
-    for (const child of childs) {
+    for (const child of childs ?? []) {
         const { from: childFrom, to: childTo, ...restChildConfig } = child;
         mappedChilds.push({
             from: { db: `${db}${childFrom.db}`, postfix: childFrom.postfix },
