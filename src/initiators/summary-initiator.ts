@@ -29,9 +29,9 @@ export class SummaryInitiator extends Dispatcher<SummaryInitiatorEvents, ConfigW
 
     private async summaryInitiator(db: string, doc: Omit<EventSchema["SUMMARY"], "dbs">, gameConfigsNamespace: ChangeStreamNameSpace) {
         const { type, data, targets } = doc;
-        const gameConfigsCursor = await this.getGameConfigs(type, gameConfigsNamespace);
+        const gameConfigsCursor = this.getGameConfigs(type, gameConfigsNamespace);
 
-        for (const gameConfig of await gameConfigsCursor.toArray()) {
+        for await (const gameConfig of gameConfigsCursor) {
             const configs = data.map((template) => summaryTemplater("games", db, gameConfig, template));
             for (const target of targets) {
                 this.emit("DEPLOY_SUMMARY", target, configs, false);
@@ -39,7 +39,7 @@ export class SummaryInitiator extends Dispatcher<SummaryInitiatorEvents, ConfigW
         }
     }
 
-    private async getGameConfigs(type: number, gameConfigsNamespace: ChangeStreamNameSpace) {
+    private getGameConfigs(type: number, gameConfigsNamespace: ChangeStreamNameSpace) {
         const { db, coll } = gameConfigsNamespace;
         return this.watcherMongo
             .db(db)

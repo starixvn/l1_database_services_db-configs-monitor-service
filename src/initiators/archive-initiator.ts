@@ -31,7 +31,7 @@ export class ArchiveInitiator extends Dispatcher<ArchiveInitiatorEvents, ConfigW
 
     private async archiveInitiator(db: string, doc: Omit<EventSchema["ARCHIVE"], "dbs">, gameConfigsNamespace: ChangeStreamNameSpace) {
         const { type, data, targets } = doc;
-        const gameConfigsCursor = await this.getGameConfigs(type, gameConfigsNamespace);
+        const gameConfigsCursor = this.getGameConfigs(type, gameConfigsNamespace);
 
         for await (const gameConfig of gameConfigsCursor) {
             const configs = data.map((template) => archiveTemplater("games", db, gameConfig, template));
@@ -41,7 +41,7 @@ export class ArchiveInitiator extends Dispatcher<ArchiveInitiatorEvents, ConfigW
         }
     }
 
-    private async getGameConfigs(type: number, gameConfigsNamespace: ChangeStreamNameSpace) {
+    private getGameConfigs(type: number, gameConfigsNamespace: ChangeStreamNameSpace) {
         const { db, coll } = gameConfigsNamespace;
         return this.watcherMongo
             .db(db)

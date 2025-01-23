@@ -53,18 +53,18 @@ export class App extends BaseApp {
         });
 
         this.indexInitiator.subscribe(this.configWatcher);
-        this.indexInitiator.on("DEPLOY_INDEX", (ns, doc, cascadedNs) =>
-            this.logger.logDebug({ title: this.className, message: `Deploy index from ${this.indexInitiator.className}` }, { extra: { ns, doc, cascadedNs } }),
+        this.indexInitiator.on("DEPLOY_INDEX", (ns, idxs, quiet) =>
+            this.logger.logDebug({ title: this.className, message: `Deploy index from ${this.indexInitiator.className}` }, { extra: { ns, idxs, quiet } }),
         );
 
         this.archiveInitiator.subscribe(this.configWatcher);
-        this.archiveInitiator.on("DEPLOY_ARCHIVE", (ns, doc, cascadedNs) =>
-            this.logger.logDebug({ title: this.className, message: `Deploy archive from ${this.archiveInitiator.className}` }, { extra: { ns, doc, cascadedNs } }),
+        this.archiveInitiator.on("DEPLOY_ARCHIVE", (ns, archive, quiet) =>
+            this.logger.logDebug({ title: this.className, message: `Deploy archive from ${this.archiveInitiator.className}` }, { extra: { ns, archive, quiet } }),
         );
 
         this.summaryInitiator.subscribe(this.configWatcher);
-        this.summaryInitiator.on("DEPLOY_SUMMARY", (ns, doc, cascadedNs) =>
-            this.logger.logDebug({ title: this.className, message: `Deploy summary from ${this.summaryInitiator.className}` }, { extra: { ns, doc, cascadedNs } }),
+        this.summaryInitiator.on("DEPLOY_SUMMARY", (ns, summary, quiet) =>
+            this.logger.logDebug({ title: this.className, message: `Deploy summary from ${this.summaryInitiator.className}` }, { extra: { ns, summary, quiet } }),
         );
 
         this.watcher.initiate();

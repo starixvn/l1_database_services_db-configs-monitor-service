@@ -28,7 +28,7 @@ export class IndexInitiator extends Dispatcher<IndexInitiatorEvents, ConfigWatch
 
     private async indexInitiator(db: string, doc: Omit<EventSchema["INDEX"], "dbs">, gameConfigsNamespace: ChangeStreamNameSpace) {
         const { type, data } = doc;
-        const gameConfigsCursor = await this.getGameConfigs(type, gameConfigsNamespace);
+        const gameConfigsCursor = this.getGameConfigs(type, gameConfigsNamespace);
 
         for await (const { name } of gameConfigsCursor) {
             for (const { postfix, idxs } of data) {
@@ -38,7 +38,7 @@ export class IndexInitiator extends Dispatcher<IndexInitiatorEvents, ConfigWatch
         }
     }
 
-    private async getGameConfigs(type: number, gameConfigsNamespace: ChangeStreamNameSpace) {
+    private getGameConfigs(type: number, gameConfigsNamespace: ChangeStreamNameSpace) {
         const { db, coll } = gameConfigsNamespace;
         return this.watcherMongo
             .db(db)
