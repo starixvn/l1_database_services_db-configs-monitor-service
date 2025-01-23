@@ -2,8 +2,9 @@ import { asClass, asValue, BaseContainer } from "@ldb/base-container";
 import type { ChangeStreamNameSpace, MongoClient } from "@ldb/mongo";
 import { healthcheckPort, lumiLoggerConfig } from "./app-configs.js";
 import { App } from "./app.js";
+import { GameInitiator } from "./initiators/game-initiator.js";
 import { metadata } from "./metadata.js";
-import type { ChangeStreamConfig } from "./types/watcher-configs.js";
+import type { ChangeStreamConfig } from "./types/watchers.js";
 import { ConfigWatcher } from "./watchers/config-watcher.js";
 import { GameWatcher } from "./watchers/game-watcher.js";
 import { Watcher } from "./watchers/watcher.js";
@@ -21,9 +22,12 @@ export class Container extends BaseContainer {
     private registerClasses() {
         this.container.register({
             app: asClass(App).singleton(),
+
             watcher: asClass(Watcher).singleton(),
             gameWatcher: asClass(GameWatcher).singleton(),
             configWatcher: asClass(ConfigWatcher).singleton(),
+
+            gameInitiator: asClass(GameInitiator).singleton(),
         });
         return this;
     }

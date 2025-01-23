@@ -1,9 +1,7 @@
 import type { BaseLogger, Extras } from "@ldb/logger";
 import type { ChangeStreamDeleteDocument, ChangeStreamNameSpace, ChangeStreamReplaceDocument } from "@ldb/mongo";
 import { Dispatcher } from "@ldb/utils";
-import type { GameEventType } from "../types/event-types.js";
-import type { GameConfig } from "../types/game-configs.js";
-import type { GameWatcherEvents, OperationType, WatcherEvents, WatcherOperationType } from "../types/watcher-configs.js";
+import type { CascadedNamespaces, GameConfig, GameEventType, GameWatcherEvents, OperationType, WatcherEvents, WatcherOperationType } from "../types/index.js";
 import type { Watcher } from "./watcher.js";
 
 export class GameWatcher extends Dispatcher<GameWatcherEvents, Pick<WatcherEvents, `${GameEventType}_${WatcherOperationType | "initiate"}`>> {
@@ -20,7 +18,7 @@ export class GameWatcher extends Dispatcher<GameWatcherEvents, Pick<WatcherEvent
         this.initGameDeleted = this.initGameDeleted.bind(this);
     }
 
-    private initGameInitiate(ns: ChangeStreamNameSpace, doc: OperationType<GameEventType>["initiate"], cascadedNs: ChangeStreamNameSpace[]) {
+    private initGameInitiate(ns: ChangeStreamNameSpace, doc: OperationType<GameEventType>["initiate"], cascadedNs: CascadedNamespaces<GameEventType>) {
         const { db } = ns;
         const { fullDocument } = doc;
         const { name, gameId, type } = fullDocument;
@@ -28,7 +26,7 @@ export class GameWatcher extends Dispatcher<GameWatcherEvents, Pick<WatcherEvent
         this.emit("INITIATE", db, { name, gameId, type }, cascadedNs);
     }
 
-    private initGameInserted(ns: ChangeStreamNameSpace, doc: OperationType<GameEventType>["insert"], cascadedNs: ChangeStreamNameSpace[]) {
+    private initGameInserted(ns: ChangeStreamNameSpace, doc: OperationType<GameEventType>["insert"], cascadedNs: CascadedNamespaces<GameEventType>) {
         const { db } = ns;
         const { fullDocument } = doc;
         const { name, gameId, type } = fullDocument;

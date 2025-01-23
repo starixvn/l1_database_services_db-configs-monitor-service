@@ -1,9 +1,16 @@
 import type { BaseLogger } from "@ldb/logger";
 import type { ChangeStreamNameSpace, GenericListener } from "@ldb/mongo";
 import { Dispatcher } from "@ldb/utils";
-import type { ConfigTemplate, ConfigTemplate$3 } from "../types/config-templates.js";
-import type { TemplateEventType } from "../types/event-types.js";
-import type { ConfigWatcherEvents, OperationType, WatcherEvents, WatcherOperationType } from "../types/watcher-configs.js";
+import type {
+    CascadedNamespaces,
+    ConfigTemplate,
+    ConfigTemplate$3,
+    ConfigWatcherEvents,
+    OperationType,
+    TemplateEventType,
+    WatcherEvents,
+    WatcherOperationType,
+} from "../types/index.js";
 import { validateConfigTemplate$3 } from "../utils/type-guards.js";
 import type { Watcher } from "./watcher.js";
 
@@ -68,7 +75,7 @@ export class ConfigWatcher extends Dispatcher<ConfigWatcherEvents, Pick<WatcherE
         return false;
     }
 
-    private initInserted<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["insert"], cascadedNs: ChangeStreamNameSpace[]) {
+    private initInserted<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["insert"], cascadedNs: CascadedNamespaces<T>) {
         const { fullDocument } = doc;
 
         if (!this.validateTemplateVersion(event, ns, fullDocument)) {
@@ -81,7 +88,7 @@ export class ConfigWatcher extends Dispatcher<ConfigWatcherEvents, Pick<WatcherE
         }
     }
 
-    private initUpdated<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["update"], cascadedNs: ChangeStreamNameSpace[]) {
+    private initUpdated<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["update"], cascadedNs: CascadedNamespaces<T>) {
         const { fullDocument } = doc;
 
         if (!this.validateTemplateVersion(event, ns, fullDocument)) {
@@ -94,7 +101,7 @@ export class ConfigWatcher extends Dispatcher<ConfigWatcherEvents, Pick<WatcherE
         }
     }
 
-    private initReplaced<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["replace"], cascadedNs: ChangeStreamNameSpace[]) {
+    private initReplaced<T extends TemplateEventType>(event: T, ns: ChangeStreamNameSpace, doc: OperationType<T>["replace"], cascadedNs: CascadedNamespaces<T>) {
         const { fullDocument } = doc;
 
         if (!this.validateTemplateVersion(event, ns, fullDocument)) {

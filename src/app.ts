@@ -1,6 +1,7 @@
 import { BaseApp } from "@ldb/base-app";
 import type { BaseLogger } from "@ldb/logger";
 import type { Metadata } from "@ldb/utils";
+import type { GameInitiator } from "./initiators/game-initiator.js";
 import type { ConfigWatcher } from "./watchers/config-watcher.js";
 import type { GameWatcher } from "./watchers/game-watcher.js";
 import type { Watcher } from "./watchers/watcher.js";
@@ -10,6 +11,8 @@ export class App extends BaseApp {
         private readonly watcher: Watcher,
         private readonly gameWatcher: GameWatcher,
         private readonly configWatcher: ConfigWatcher,
+
+        private readonly gameInitiator: GameInitiator,
 
         metadata: Metadata,
         logger: BaseLogger,
@@ -36,6 +39,11 @@ export class App extends BaseApp {
         this.configWatcher.on("ARCHIVE", (ns, doc, cascadedNs) =>
             this.logger.logDebug({ title: this.className, message: `Archive event ${ns} ${JSON.stringify(doc)}` }, { extra: { cascadedNs } }),
         );
+
+        this.gameInitiator.subscribe(this.gameWatcher);
+        this.gameInitiator.on("DEPLOY_INDEX", (ns, idxs, quiet) => {
+            this.logger.logDebug({ title: this.className, message: `Deploy index` }, { extra: { ns, idxs, quiet } });
+        });
 
         this.watcher.initiate();
         super.initiate();
